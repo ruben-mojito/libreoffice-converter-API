@@ -68,8 +68,17 @@ async def convert_to_pdf(file: UploadFile = File(...)):
                 detail="LibreOffice no generó el archivo PDF"
             )
         
+        # Copiar a una ubicación permanente antes de retornar
+        # (FileResponse no bloquea, así que necesitamos el archivo fuera del dir temporal)
+        final_path = OUTPUT_DIR / f"{uuid.uuid4()}_{output_filename}"
+        shutil.copy2(output_path, final_path)
+        
+        # Limpiar directorio de trabajo ahora
+        if work_dir.exists():
+            shutil.rmtree(work_dir)
+        
         return FileResponse(
-            path=output_path,
+            path=final_path,
             filename=output_filename,
             media_type="application/pdf"
         )
@@ -77,11 +86,10 @@ async def convert_to_pdf(file: UploadFile = File(...)):
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=500, detail="Tiempo de conversión agotado")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        # Limpiar directorio de trabajo
+        # Limpiar en caso de error
         if work_dir.exists():
             shutil.rmtree(work_dir)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():
