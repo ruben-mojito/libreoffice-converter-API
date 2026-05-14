@@ -4,7 +4,7 @@ services:
   converter:
     build: .
     ports:
-      - "8000:8000"
+      - "4951:8000"
     volumes:
       - ./tmp:/tmp/conversions
     environment:
